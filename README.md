@@ -34,19 +34,19 @@ Todo:
 - Get the CAPS/NUN/SCROLL LED working 
 
 Tandy 1000 8-pin DIN (using DIN 5 is fine but watch alignment!)
--1 - Data
--2 - Busy
--3 - Ground
--4 - Clock
--5 - +5v
--6 - Reset
--7 - NC
--8 - NC
+- 1 - Data
+- 2 - Busy
+- 3 - Ground
+- 4 - Clock
+- 5 - +5v
+- 6 - Reset
+- 7 - NC
+- 8 - NC
 
 IBM - Tandy Mapping
--2 - 1 Data
--4 - 3 Ground
--5 - 5 +5v
--1 - 4 Clock
+- 2 - 1 Data
+- 4 - 3 Ground
+- 5 - 5 +5v
+- 1 - 4 Clock
 
 (I am ignoring the Reset and Busy line. The machine seems to work perfectly without them.)
