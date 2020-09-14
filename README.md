@@ -10,6 +10,8 @@ Parts needed:
 - DIN 5 Female and DIN 8 or Din 5 Male
 - Some wire
 
+Requires Arduino Library: https://github.com/techpaul/PS2KeyRaw by Paul Carpenter
+
 Converts from AT/PS2 keyboard _TO_ the Tandy 1000 so you can use a regular keyboard with a Tandy 1000! Should work on the Tandy 1000, 1000A, 1000SX and possibly others that use the original Tandy Keyboard. 
 
 Power provided by the Tandy so you can create a cable with the arduino in the middle. 
