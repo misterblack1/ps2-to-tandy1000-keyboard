@@ -449,7 +449,7 @@ void setupTable () // translate from PS2 keycode to Tandy 1000
   translationTable[PS2_KEY_9] = 0x0A;
   translationTable[PS2_KEY_APOS] = 0x28; 
   translationTable[PS2_KEY_A] = 0x1E;
-  translationTable[PS2_KEY_BACK] = 0x47 ;
+  translationTable[PS2_KEY_BACK] = 0x47;
   translationTable[PS2_KEY_BREAK] = 0x54;
   translationTable[PS2_KEY_BS] = 0x0E;
   translationTable[PS2_KEY_B] = 0x30;
@@ -511,7 +511,7 @@ void setupTable () // translate from PS2 keycode to Tandy 1000
   translationTable[PS2_KEY_R_SHIFT] = 0x36; 
   translationTable[PS2_KEY_SCROLL] = 0x46;
   translationTable[PS2_KEY_SEMI] = 0x27;
-  translationTable[PS2_KEY_SINGLE] = 0x50 ;
+  translationTable[PS2_KEY_SINGLE] = 0x50;
   translationTable[PS2_KEY_SPACE] = 0x39;
   translationTable[PS2_KEY_S] = 0x1F;
   translationTable[PS2_KEY_TAB] = 0x0F;
@@ -533,29 +533,29 @@ void sendToTandy(unsigned char value) // routine that writes to the data and clo
   for (int i = 0; i < 8; i++)
   {
     if (value & 1)
-      bits[i] = 1 ;
+      bits[i] = 1;
     else 
-      bits[i] = 0 ; 
+      bits[i] = 0; 
     
-    value = value >> 1 ; 
+    value = value >> 1; 
   }
 
   for (int i = 0; i < 8; i++)
   {
-    digitalWrite(xt_data, bits[i]) ;
-    delayMicroseconds(5) ;
-    digitalWrite(xt_clk, HIGH) ;
-    delayMicroseconds(7) ;
-    digitalWrite(xt_data, HIGH) ;
-    delayMicroseconds(5) ;
-    digitalWrite(xt_clk, LOW) ;
+    digitalWrite(xt_data, bits[i]);
+    delayMicroseconds(5);
+    digitalWrite(xt_clk, HIGH);
+    delayMicroseconds(7);
+    digitalWrite(xt_data, HIGH);
+    delayMicroseconds(5);
+    digitalWrite(xt_clk, LOW);
   } 
 
-  digitalWrite(xt_clk, LOW) ;
-  delayMicroseconds(10) ;
-  digitalWrite(xt_data, LOW) ;
-  delayMicroseconds(5) ;
-  digitalWrite(xt_data, HIGH) ;
+  digitalWrite(xt_clk, LOW);
+  delayMicroseconds(10);
+  digitalWrite(xt_data, LOW);
+  delayMicroseconds(5);
+  digitalWrite(xt_data, HIGH);
   delay(10);
 }
 
