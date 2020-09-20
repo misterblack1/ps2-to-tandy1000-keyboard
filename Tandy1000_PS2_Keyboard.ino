@@ -1,12 +1,13 @@
 /* 
 Tandy 1000/1000A/1000SX keyboard converter by Adrian Black
-Version 0.1 10-AUG-2020
+(Modified for maintainability by Rutger van Bergen)
+Version 0.2 20-SEP-2020
 
 Converts from AT/PS2 keyboard _TO_ the Tandy 1000 so you can use a regular keyboard with a Tandy.
-Power provided by the Tandy so you can create a cable with the arduino in the middle. 
+Power provided by the Tandy so you can create a cable with the Arduino in the middle. 
 A standard 5 pin DIN extension cable is all you need to make this work.
 
-Warning it's possible to insert the DIN 5 into the Tandy turned one or more pins!!
+Warning: it's possible to insert the DIN 5 into the Tandy turned one or more pins!!
 Make sure you have the center notch on the DIN-5 facing straight up -- or use the proper DIN cable to prevent this issue!
 
 Original timing diagrams used from: http://www.kbdbabel.org/
@@ -21,8 +22,8 @@ Uses this library to read raw codes from the PS2 keyboard: https://github.com/te
  
 Todo: 
 Handle the Pause key
-Handle the print screen key
-Get the CAPS/NUN/SCROLL LED working 
+Handle the Print Screen key
+Get the CAPS/NUM/SCROLL LED working 
 
 Tandy 1000 8-pin DIN (using DIN 5 is fine but watch alignment!)
 1 - Data
@@ -302,6 +303,7 @@ void handleNormalKeyRelease(int code)
     shiftOn = false; 
     break;     
           
+  // the release of the following keys are communicated to the Tandy when the key is pressed, so we must not do anything here 
   case PS2_KEY_CAPS: 
   case PS2_KEY_NUM: 
   case PS2_KEY_BACK:
@@ -337,23 +339,23 @@ void handleSpecialKeyPress(int code)
     sendToTandy(XT_KEY_KP_ENTER); 
     break; 
 
-  case PS2_KEY_DELETE: // the delete key is on the numpad on the tandy, and only works if numlock is off
+  case PS2_KEY_DELETE: // the delete key is on the numpad on the Tandy, and only works if numlock is off
     numLockForcedOffPressAndRelease(XT_KEY_DELETE);       
     break;
 
-  case PS2_KEY_INSERT: // the insert key is on the numpad on the tandy, and only works if numlock is off
+  case PS2_KEY_INSERT: // the insert key is on the numpad on the Tandy, and only works if numlock is off
     numLockForcedOffPressAndRelease(XT_KEY_INSERT); 
     break;
 
-  case PS2_KEY_PGUP: // the page up key is on the numpad on the tandy, and only works if numlock is off
+  case PS2_KEY_PGUP: // the page up key is on the numpad on the Tandy, and only works if numlock is off
     numLockForcedOffPressAndRelease(XT_KEY_KP9); 
     break;
 
-  case PS2_KEY_PGDN: // the page down key is on the numpad on the tandy, and only works if numlock is off
+  case PS2_KEY_PGDN: // the page down key is on the numpad on the Tandy, and only works if numlock is off
     numLockForcedOffPressAndRelease(XT_KEY_KP3);
     break;
 
-  case PS2_KEY_END: // the end key is on the numpad on the tandy, and only works if numlock is off 
+  case PS2_KEY_END: // the end key is on the numpad on the Tandy, and only works if numlock is off 
     numLockForcedOffPressAndRelease(XT_KEY_KP1);
     break;
 
@@ -386,6 +388,7 @@ void handleSpecialKeyRelease(int code)
     sendToTandy(XT_KEY_KP_ENTER | XT_BIT_BREAK); 
     break; 
 
+  // the release of the following keys are communicated to the Tandy when the key is pressed, so we must not do anything here
   case PS2_KEY_DELETE:  
   case PS2_KEY_INSERT: 
   case PS2_KEY_PGUP: 
