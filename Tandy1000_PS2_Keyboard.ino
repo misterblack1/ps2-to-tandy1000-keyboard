@@ -57,15 +57,19 @@ unsigned char translationTable[256];
 
 //
 // PS2 raw keycodes
-/* Single Byte Key Codes */
+#define PS2_CODE_BREAK   0xF0 // sent before the key code when a key is released
+#define PS2_CODE_EXTEND  0xE0 // sent before the key code in case the key is an "extended" key
+#define PS2_MAX_KEYCODE 0x7F // maximum value of normal key codes
+
+/* single byte key codes */
 #define PS2_KEY_NUM      0x77
 #define PS2_KEY_SCROLL   0x7E
 #define PS2_KEY_CAPS     0x58
 #define PS2_KEY_L_SHIFT  0x12
 #define PS2_KEY_R_SHIFT  0x59
-/* This is Left CTRL and ALT but Right version is in E0 with same code */
-#define PS2_KEY_L_CTRL     0x14
-#define PS2_KEY_L_ALT      0x11
+/* this is left CTRL and ALT; right version is PS2_CODE_EXTEND followed by the same code */
+#define PS2_KEY_L_CTRL   0x14
+#define PS2_KEY_L_ALT    0x11
 #define PS2_KEY_ESC      0x76
 #define PS2_KEY_BS       0x66
 #define PS2_KEY_TAB      0x0D
@@ -129,7 +133,7 @@ unsigned char translationTable[256];
 #define PS2_KEY_Y        0x35
 #define PS2_KEY_Z        0x1A
 #define PS2_KEY_SEMI     0x4C
-#define PS2_KEY_BACK     0x5D //backslash -- needs special handling
+#define PS2_KEY_BACK     0x5D // backslash -- needs special handling
 #define PS2_KEY_OPEN_SQ  0x54
 #define PS2_KEY_CLOSE_SQ 0x5B
 #define PS2_KEY_EQUAL    0x55
@@ -147,8 +151,8 @@ unsigned char translationTable[256];
 #define PS2_KEY_F12      0x07
 #define PS2_KEY_KP_COMMA 0x6D
 
-// Extended key codes -- scan code is received with a preceeding E0 then the code below
-// All of the keys below need special handling
+// extended key codes -- scan code is received with a preceeding PS2_CODE_EXTEND then the code below
+// all of the keys below need special handling, except for PS2_KEY_HOME
 #define PS2_KEY_IGNORE   0x12
 #define PS2_KEY_PRTSCR   0x7C
 #define PS2_KEY_L_GUI    0x1F // windows key
@@ -165,8 +169,28 @@ unsigned char translationTable[256];
 #define PS2_KEY_KP_DIV   0x4A
 
 #define XT_KEY_NUM       0x45
+#define XT_KEY_CAPS      0x3A
+#define XT_KEY_8         0x09
+#define XT_KEY_KP1       0x4F
+#define XT_KEY_KP2       0x50
+#define XT_KEY_KP3       0x51
+#define XT_KEY_KP4       0x4B
+#define XT_KEY_KP7       0x47
+#define XT_KEY_KP8       0x48
+#define XT_KEY_KP9       0x49
+#define XT_KEY_EQUAL     0x0D
+#define XT_KEY_ARROW_L   0x2B      
+#define XT_KEY_ARROW_R   0x4E   
+#define XT_KEY_ARROW_U   0x29   
+#define XT_KEY_ARROW_D   0x4A
+#define XT_KEY_L_SHIFT   0x2A
 #define XT_KEY_R_SHIFT   0x36
-#define XT_BIT_RELEASED  0x80
+#define XT_KEY_KP_ENTER  0x57
+#define XT_KEY_DELETE    0x53
+#define XT_KEY_INSERT    0x55
+#define XT_KEY_HOME      0x58
+
+#define XT_BIT_BREAK     0x80 // to tell the Tandy a key is released, OR the code of the key with this
 
 PS2KeyRaw keyboard;
 
@@ -185,64 +209,42 @@ void setup()
 void toggleButton(bool *toggle, unsigned char code) 
 {
     if (*toggle) 
-      code |= XT_BIT_RELEASED;
+      code |= XT_BIT_BREAK;
 
     sendToTandy(code);
     *toggle = !*toggle;
 }
 
-void numLockedPressAndRelease(unsigned char code)
+void numLockForcedOnPressAndRelease(unsigned char code)
 {
   if (numLockOn) // numlock is already on, so just push and release the key
-    sendToTandy(code, code | XT_BIT_RELEASED);
+    sendToTandy(code, code | XT_BIT_BREAK);
   else // numlock is off, so turn it on, press and release key and turn it back off
-    sendToTandy(XT_KEY_NUM, code, code | XT_BIT_RELEASED, XT_KEY_NUM | XT_BIT_RELEASED); 
+    sendToTandy(XT_KEY_NUM, code, code | XT_BIT_BREAK, XT_KEY_NUM | XT_BIT_BREAK); 
 }
 
-void unNumLockedPressAndRelease(unsigned char code)
+void numLockForcedOffPressAndRelease(unsigned char code)
 {
   if (numLockOn) // numlock is on, so turn it off, press and release key and turn it back on
-    sendToTandy(XT_KEY_NUM | XT_BIT_RELEASED, code, code | XT_BIT_RELEASED, XT_KEY_NUM);
+    sendToTandy(XT_KEY_NUM | XT_BIT_BREAK, code, code | XT_BIT_BREAK, XT_KEY_NUM);
   else // numlock is already off, so just push and release the key
-    sendToTandy(code, code | XT_BIT_RELEASED); 
+    sendToTandy(code, code | XT_BIT_BREAK); 
 }
 
 void handleNormalKeyPress(int code)
 {
   switch (code)
   {
-  case PS2_KEY_CAPS: // capslock -- we have to do special handling and state tracking
-    toggleButton(&capsLockOn, 0x3a);
-    break;
-  
-  case PS2_KEY_NUM: // numlock -- we have to do special handling and state tracking
-    toggleButton(&numLockOn, XT_KEY_NUM);
-    break;
-
   case PS2_KEY_KP_TIMES: // send a shift 8 for * 
-    sendToTandy(XT_KEY_R_SHIFT, 0x09);
+    sendToTandy(XT_KEY_R_SHIFT, XT_KEY_8);
     break; 
 
-  case PS2_KEY_KP_PLUS: 
-    sendToTandy(XT_KEY_R_SHIFT, 0x0d); 
-    break;
-
-  case PS2_KEY_BACK:   
-    if (shiftOn) 
-      numLockedPressAndRelease(0x4B);
-    else    
-      unNumLockedPressAndRelease(0x47);
-    break; 
-
-  case PS2_KEY_SINGLE:  
-    if (shiftOn)
-      numLockedPressAndRelease(0x48);
-    else
-      unNumLockedPressAndRelease(0x50);
+  case PS2_KEY_KP_PLUS: // send a shift = for +
+    sendToTandy(XT_KEY_R_SHIFT, XT_KEY_EQUAL); 
     break;
 
   case PS2_KEY_L_SHIFT: 
-    sendToTandy(0x2A); 
+    sendToTandy(XT_KEY_L_SHIFT); 
     shiftOn = true; 
     break;
   
@@ -250,6 +252,28 @@ void handleNormalKeyPress(int code)
     sendToTandy(XT_KEY_R_SHIFT); 
     shiftOn = true; 
     break;      
+
+  case PS2_KEY_CAPS: // capslock -- we have to do special handling and state tracking
+    toggleButton(&capsLockOn, XT_KEY_CAPS);
+    break;
+  
+  case PS2_KEY_NUM: // numlock -- we have to do special handling and state tracking
+    toggleButton(&numLockOn, XT_KEY_NUM);
+    break;
+
+  case PS2_KEY_BACK:   
+    if (shiftOn) // shift is on, so we send | via numeric keypad 4 with numlock forced ON, to reverse the shift
+      numLockForcedOnPressAndRelease(XT_KEY_KP4);
+    else // shift is off, so we send \ via numeric keypad 7 with numlock forced OFF
+      numLockForcedOffPressAndRelease(XT_KEY_KP7);
+    break; 
+
+  case PS2_KEY_SINGLE:  
+    if (shiftOn) // shift is on, so we send ~ via numeric keypad 8 with numlock forced ON, to reverse the shift
+      numLockForcedOnPressAndRelease(XT_KEY_KP8);
+    else // shift is off, so we send ` via numeric keypad 2 with numlock forced OFF
+      numLockForcedOffPressAndRelease(XT_KEY_KP2);
+    break;
 
   default: // no special handling, use the translation table to send the right key
     sendToTandy(translationTable[code]);
@@ -261,20 +285,20 @@ void handleNormalKeyRelease(int code)
   switch (code)
   {
   case PS2_KEY_KP_TIMES: 
-    sendToTandy(0x09 | XT_BIT_RELEASED, XT_KEY_R_SHIFT | XT_BIT_RELEASED); 
+    sendToTandy(XT_KEY_8 | XT_BIT_BREAK, XT_KEY_R_SHIFT | XT_BIT_BREAK); 
     break;
   
   case PS2_KEY_KP_PLUS: 
-    sendToTandy(0x0d | XT_BIT_RELEASED, XT_KEY_R_SHIFT | XT_BIT_RELEASED); 
+    sendToTandy(XT_KEY_EQUAL | XT_BIT_BREAK, XT_KEY_R_SHIFT | XT_BIT_BREAK); 
     break;
 
   case PS2_KEY_L_SHIFT: 
-    sendToTandy(0x2A | XT_BIT_RELEASED); 
+    sendToTandy(XT_KEY_L_SHIFT | XT_BIT_BREAK); 
     shiftOn = false; 
     break;
   
   case PS2_KEY_R_SHIFT: 
-    sendToTandy(XT_KEY_R_SHIFT | XT_BIT_RELEASED); 
+    sendToTandy(XT_KEY_R_SHIFT | XT_BIT_BREAK); 
     shiftOn = false; 
     break;     
           
@@ -284,8 +308,8 @@ void handleNormalKeyRelease(int code)
   case PS2_KEY_SINGLE: 
     break;
 
-  default: // this is the "break" signal -- when you let go of a key -- so need to send the scancode to the computer OR'ed with XT_BIT_RELEASED which tells it you let go of the key
-    sendToTandy(translationTable[code] | XT_BIT_RELEASED);
+  default: // this is the "break" signal -- when you let go of a key -- so need to send the scancode to the computer OR'ed with XT_BIT_BREAK which tells it you let go of the key
+    sendToTandy(translationTable[code] | XT_BIT_BREAK);
   }
 }
 
@@ -294,62 +318,46 @@ void handleSpecialKeyPress(int code)
   switch (code) 
   {
   case PS2_KEY_KP4: // left arrow
-    sendToTandy(0x2b); 
+    sendToTandy(XT_KEY_ARROW_L); 
     break; 
   
   case PS2_KEY_KP6: // right arrow
-    sendToTandy(0x4e); 
+    sendToTandy(XT_KEY_ARROW_R); 
     break;  
   
   case PS2_KEY_KP8: // up arrow
-    sendToTandy(0x29); 
+    sendToTandy(XT_KEY_ARROW_U); 
     break;  
   
   case PS2_KEY_KP2: // down arrow
-    sendToTandy(0x4a); 
+    sendToTandy(XT_KEY_ARROW_D); 
     break;  
-
-  case PS2_KEY_L_CTRL: 
-    sendToTandy(0x1d); 
-    break;
-
-  case PS2_KEY_L_ALT: 
-    sendToTandy(0x38); 
-    break;
-
-  case PS2_KEY_DIV: 
-    sendToTandy(0x35); 
-    break; 
-
-  case PS2_KEY_HOME: 
-    sendToTandy(0x58); 
-    break; 
   
   case PS2_KEY_ENTER: // keypad enter
-    sendToTandy(0x57); 
+    sendToTandy(XT_KEY_KP_ENTER); 
     break; 
 
-  case PS2_KEY_END:  
-    unNumLockedPressAndRelease(0x4F);
-    break;
-
   case PS2_KEY_DELETE: // the delete key is on the numpad on the tandy, and only works if numlock is off
-    unNumLockedPressAndRelease(0x53);       
+    numLockForcedOffPressAndRelease(XT_KEY_DELETE);       
     break;
 
-  case PS2_KEY_INSERT: 
-    unNumLockedPressAndRelease(0x55); 
+  case PS2_KEY_INSERT: // the insert key is on the numpad on the tandy, and only works if numlock is off
+    numLockForcedOffPressAndRelease(XT_KEY_INSERT); 
     break;
 
-  case PS2_KEY_PGUP:  
-    unNumLockedPressAndRelease(0x49); 
+  case PS2_KEY_PGUP: // the page up key is on the numpad on the tandy, and only works if numlock is off
+    numLockForcedOffPressAndRelease(XT_KEY_KP9); 
     break;
 
-  case PS2_KEY_PGDN:   
-    unNumLockedPressAndRelease(0x51);
+  case PS2_KEY_PGDN: // the page down key is on the numpad on the tandy, and only works if numlock is off
+    numLockForcedOffPressAndRelease(XT_KEY_KP3);
     break;
 
-  default: // and now all the other special keys.... this section probably shoudl be removed
+  case PS2_KEY_END: // the end key is on the numpad on the tandy, and only works if numlock is off 
+    numLockForcedOffPressAndRelease(XT_KEY_KP1);
+    break;
+
+  default: // any other special keys are handled through the translation table
     sendToTandy(translationTable[code]);
   }
 }
@@ -359,66 +367,59 @@ void handleSpecialKeyRelease(int code)
   switch (code)
   {
   case PS2_KEY_KP4: // left arrow
-    sendToTandy(0x2b | XT_BIT_RELEASED); 
+    sendToTandy(XT_KEY_ARROW_L | XT_BIT_BREAK); 
     break;  
 
   case PS2_KEY_KP6: // right arrow 
-    sendToTandy(0x4e | XT_BIT_RELEASED); 
+    sendToTandy(XT_KEY_ARROW_R | XT_BIT_BREAK); 
     break; 
 
   case PS2_KEY_KP8: // up arrow
-    sendToTandy(0x29 | XT_BIT_RELEASED); 
+    sendToTandy(XT_KEY_ARROW_U | XT_BIT_BREAK); 
     break; 
 
   case PS2_KEY_KP2: // down arrow
-    sendToTandy(0x4a | XT_BIT_RELEASED); 
-    break; 
-
-  case PS2_KEY_DIV: 
-    sendToTandy(0x35 | XT_BIT_RELEASED); 
-    break; 
-
-  case PS2_KEY_L_CTRL: 
-    sendToTandy(0x1d | XT_BIT_RELEASED); 
-    break;
-
-  case PS2_KEY_L_ALT: 
-    sendToTandy(0x38 | XT_BIT_RELEASED); 
-    break;
-
-  case PS2_KEY_HOME: // home key
-    sendToTandy(0x58 | XT_BIT_RELEASED); 
+    sendToTandy(XT_KEY_ARROW_D | XT_BIT_BREAK); 
     break; 
 
   case PS2_KEY_ENTER: // keypad enter
-    sendToTandy(0x57 | XT_BIT_RELEASED); 
+    sendToTandy(XT_KEY_KP_ENTER | XT_BIT_BREAK); 
     break; 
 
   case PS2_KEY_DELETE:  
-  case PS2_KEY_END: 
   case PS2_KEY_INSERT: 
   case PS2_KEY_PGUP: 
   case PS2_KEY_PGDN: 
+  case PS2_KEY_END: 
     break;
     
-  default: // this is the "break" signal -- when you let go of a key -- so need to send the scancode to the computer OR'ed with XT_BIT_RELEASED which tells it you let go of the key
-    sendToTandy(translationTable[code] | XT_BIT_RELEASED);
+  default: // this is the "break" signal -- when you let go of a key -- so need to send the scancode to the computer OR'ed with XT_BIT_BREAK which tells it you let go of the key
+    sendToTandy(translationTable[code] | XT_BIT_BREAK);
   }
 }
 
 void loop() 
 {
-  if (!keyboard.available()) // check if byte is waiting to be read out of buffer
+  if (!keyboard.available()) // check if byte is waiting to be read out of buffer, otherwise we're done for now
     return;
 
   int c = keyboard.read(); // read the keyboard buffer byte into variable c
    
-  if (c == 0xE0) // special keys -- like ones that are replicated and have E0 first so you can tell them apart
+  if (c <= PS2_MAX_KEYCODE)  // normal PS2 key codes without any special or special commands
+  {
+    handleNormalKeyPress(c);
+  }
+  else if (c == PS2_CODE_BREAK) // byte that is sent when a key is released. 
   {
     delay(10);
-    c = keyboard.read(); // first byte was E0 for special, so read the next byte which will be the key pushed
+    handleNormalKeyRelease(keyboard.read());
+  }
+  else if (c == PS2_CODE_EXTEND) // special keys -- like ones that are replicated and have PS2_CODE_EXTEND first so you can tell them apart
+  {
+    delay(10);
+    c = keyboard.read(); // first byte signaled a special (extended) key, so read the next byte which will be the key pushed
     
-    if (c == 0xF0)  // oh actually, a special key was released, so we need to handle that.
+    if (c == PS2_CODE_BREAK)  // oh actually, a special key was released, so we need to handle that.
     {
       delay(10); // wait a little for the MCU to read the byte from the keyboard
       handleSpecialKeyRelease(keyboard.read());
@@ -426,13 +427,6 @@ void loop()
     else 
       handleSpecialKeyPress(c);
   }  
-  else if (c == 0xF0) // byte that is sent when a key is released. 
-  {
-    delay(10);
-    handleNormalKeyRelease(keyboard.read());
-  }
-  else if (c < XT_BIT_RELEASED)  // normal PS2 key combos without any special or special commands
-    handleNormalKeyPress(c);
 }
 
 void setupTable () // translate from PS2 keycode to Tandy 1000
@@ -449,11 +443,10 @@ void setupTable () // translate from PS2 keycode to Tandy 1000
   translationTable[PS2_KEY_5] = 0x06;
   translationTable[PS2_KEY_6] = 0x07;
   translationTable[PS2_KEY_7] = 0x08;
-  translationTable[PS2_KEY_8] = 0x09;
+  translationTable[PS2_KEY_8] = XT_KEY_8;
   translationTable[PS2_KEY_9] = 0x0A;
   translationTable[PS2_KEY_APOS] = 0x28; 
   translationTable[PS2_KEY_A] = 0x1E;
-  translationTable[PS2_KEY_BACK] = 0x47;
   translationTable[PS2_KEY_BREAK] = 0x54;
   translationTable[PS2_KEY_BS] = 0x0E;
   translationTable[PS2_KEY_B] = 0x30;
@@ -464,7 +457,7 @@ void setupTable () // translate from PS2 keycode to Tandy 1000
   translationTable[PS2_KEY_DOT] = 0x34;
   translationTable[PS2_KEY_D] = 0x20;
   translationTable[PS2_KEY_ENTER] = 0x1C;
-  translationTable[PS2_KEY_EQUAL] = 0x0D;  
+  translationTable[PS2_KEY_EQUAL] = XT_KEY_EQUAL;  
   translationTable[PS2_KEY_ESC] = 0x01;
   translationTable[PS2_KEY_E] = 0x12;
   translationTable[PS2_KEY_F10] = 0x44;
@@ -485,24 +478,24 @@ void setupTable () // translate from PS2 keycode to Tandy 1000
   translationTable[PS2_KEY_I] = 0x17;
   translationTable[PS2_KEY_J] = 0x24;
   translationTable[PS2_KEY_KP0] = 0x52;
-  translationTable[PS2_KEY_KP1] = 0x4F;
-  translationTable[PS2_KEY_KP2] = 0x50;
-  translationTable[PS2_KEY_KP3] = 0x51;
-  translationTable[PS2_KEY_KP4] = 0x4B;
+  translationTable[PS2_KEY_KP1] = XT_KEY_KP1;
+  translationTable[PS2_KEY_KP2] = XT_KEY_KP2;
+  translationTable[PS2_KEY_KP3] = XT_KEY_KP3;
+  translationTable[PS2_KEY_KP4] = XT_KEY_KP4;
   translationTable[PS2_KEY_KP5] = 0x4C;
   translationTable[PS2_KEY_KP6] = 0x4D;
-  translationTable[PS2_KEY_KP7] = 0x47; 
-  translationTable[PS2_KEY_KP8] = 0x48; 
-  translationTable[PS2_KEY_KP9] = 0x49;
+  translationTable[PS2_KEY_KP7] = XT_KEY_KP7; 
+  translationTable[PS2_KEY_KP8] = XT_KEY_KP8; 
+  translationTable[PS2_KEY_KP9] = XT_KEY_KP9;
   translationTable[PS2_KEY_KP_DIV] = 0x35; 
   translationTable[PS2_KEY_KP_DOT] = 0x56;
-  translationTable[PS2_KEY_KP_ENTER] = 0x57; 
-  translationTable[PS2_KEY_KP_MINUS] = 0x0c;
+  translationTable[PS2_KEY_KP_ENTER] = XT_KEY_KP_ENTER; 
+  translationTable[PS2_KEY_KP_MINUS] = 0x0C;
   translationTable[PS2_KEY_K] = 0x25;
   translationTable[PS2_KEY_L] = 0x26;
   translationTable[PS2_KEY_L_ALT] = 0x38; 
   translationTable[PS2_KEY_L_CTRL] = 0x1D;
-  translationTable[PS2_KEY_L_SHIFT] = 0x2A;
+  translationTable[PS2_KEY_L_SHIFT] = XT_KEY_L_SHIFT;
   translationTable[PS2_KEY_MINUS] = 0x0C;
   translationTable[PS2_KEY_M] = 0x32;
   translationTable[PS2_KEY_N] = 0x31;
@@ -512,10 +505,10 @@ void setupTable () // translate from PS2 keycode to Tandy 1000
   translationTable[PS2_KEY_P] = 0x19;
   translationTable[PS2_KEY_Q] = 0x10;
   translationTable[PS2_KEY_R] = 0x13;
-  translationTable[PS2_KEY_R_SHIFT] = 0x36; 
+  translationTable[PS2_KEY_R_SHIFT] = XT_KEY_R_SHIFT; 
   translationTable[PS2_KEY_SCROLL] = 0x46;
   translationTable[PS2_KEY_SEMI] = 0x27;
-  translationTable[PS2_KEY_SINGLE] = 0x50;
+  translationTable[PS2_KEY_SINGLE] = XT_KEY_KP2;
   translationTable[PS2_KEY_SPACE] = 0x39;
   translationTable[PS2_KEY_S] = 0x1F;
   translationTable[PS2_KEY_TAB] = 0x0F;
@@ -525,7 +518,8 @@ void setupTable () // translate from PS2 keycode to Tandy 1000
   translationTable[PS2_KEY_W] = 0x11;
   translationTable[PS2_KEY_X] = 0x2D;
   translationTable[PS2_KEY_Y] = 0x15;
-  translationTable[PS2_KEY_Z] = 0x2c;
+  translationTable[PS2_KEY_Z] = 0x2C;
+  translationTable[PS2_KEY_HOME] = XT_KEY_HOME;
 }
 
 void sendToTandy(unsigned char value) // routine that writes to the data and clock lines to the Tandy
