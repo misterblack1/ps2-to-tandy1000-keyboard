@@ -1,7 +1,8 @@
 # PS2/AT Keyboard to Tandy 1000 Keyboard Adapter
 
-Tandy 1000/1000A/1000SX keyboard converter by Adrian Black
-Version 0.1 10-AUG-2020
+Tandy 1000/1000A/1000SX keyboard converter by Adrian Black 
+(Modified for maintainability by Rutger van Bergen)
+Version 0.2 20-SEP-2020
 
 Parts needed:
 - Arduino Pro Mini or any other Atmel ATMEGA 168/368 board
@@ -32,8 +33,8 @@ Uses this library to read raw codes from the PS2 keyboard: https://github.com/te
  
 Todo: 
 - Handle the Pause key
-- Handle the print screen key
-- Get the CAPS/NUN/SCROLL LED working 
+- Handle the Print Screen key
+- Get the CAPS/NUM/SCROLL LED working 
 
 Tandy 1000 8-pin DIN (using DIN 5 is fine but watch alignment!)
 - 1 - Data
