@@ -423,32 +423,34 @@ void handleSpecialKeyRelease(int code)
 
 void loop() 
 {
-  if (!keyboard.available()) // check if byte is waiting to be read out of buffer, otherwise we're done for now
-    return;
+  while (!keyboard.available()); // wait for byte to be available in keyboard buffer
 
-  int c = keyboard.read(); // read the keyboard buffer byte into variable c
+  int code = keyboard.read(); // read the keyboard buffer byte into variable code
    
-  if (c <= PS2_MAX_KEYCODE)  // normal PS2 key codes without any special or special commands
+  if (code <= PS2_MAX_KEYCODE)  // normal PS2 key codes without any special or special commands
   {
-    handleNormalKeyPress(c);
+    handleNormalKeyPress(code);
   }
-  else if (c == PS2_CODE_BREAK) // byte that is sent when a key is released. 
+  else if (code == PS2_CODE_BREAK) // byte that is sent when a key is released. 
   {
-    delay(10);
+    while (!keyboard.available()); // wait for next byte to be available in keyboard buffer
+
     handleNormalKeyRelease(keyboard.read());
   }
-  else if (c == PS2_CODE_EXTEND) // special keys -- like ones that are replicated and have PS2_CODE_EXTEND first so you can tell them apart
+  else if (code == PS2_CODE_EXTEND) // special keys -- like ones that are replicated and have PS2_CODE_EXTEND first so you can tell them apart
   {
-    delay(10);
-    c = keyboard.read(); // first byte signaled a special (extended) key, so read the next byte which will be the key pushed
+    while (!keyboard.available()); // wait for next byte to be available in keyboard buffer
+
+    code = keyboard.read(); // first byte signaled a special (extended) key, so read the next byte which will be the key pushed
     
-    if (c == PS2_CODE_BREAK)  // oh actually, a special key was released, so we need to handle that.
+    if (code == PS2_CODE_BREAK)  // oh actually, a special key was released, so we need to handle that.
     {
-      delay(10); // wait a little for the MCU to read the byte from the keyboard
+      while (!keyboard.available()); // wait for next byte to be available in keyboard buffer
+
       handleSpecialKeyRelease(keyboard.read());
     }
     else 
-      handleSpecialKeyPress(c);
+      handleSpecialKeyPress(code);
   }  
 }
 
