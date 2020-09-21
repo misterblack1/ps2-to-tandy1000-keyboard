@@ -54,7 +54,7 @@ bool capsLockOn = false; // tracking of caps lock status
 bool numLockOn = false;  // tracking of num lock status
 bool shiftOn = false; // tracking of shift key for \ and ` key
 
-unsigned char translationTable[256];
+byte translationTable[256];
 
 //
 // PS2 raw keycodes
@@ -207,7 +207,7 @@ void setup()
   digitalWrite(XT_DATA, HIGH); 
 }
 
-void toggleButton(bool *toggle, unsigned char code) 
+void toggleButton(bool *toggle, byte code) 
 {
     if (*toggle) 
       code |= XT_BIT_BREAK;
@@ -216,20 +216,36 @@ void toggleButton(bool *toggle, unsigned char code)
     *toggle = !*toggle;
 }
 
-void numLockForcedOnPressAndRelease(unsigned char code)
+void numLockForcedOnPressAndRelease(byte code)
 {
-  if (numLockOn) // numlock is already on, so just push and release the key
-    sendToTandy(code, code | XT_BIT_BREAK);
-  else // numlock is off, so turn it on, press and release key and turn it back off
-    sendToTandy(XT_KEY_NUM, code, code | XT_BIT_BREAK, XT_KEY_NUM | XT_BIT_BREAK); 
+  if (numLockOn) 
+  { // numlock is already on, so just push and release the key
+    sendToTandy(code);
+    sendToTandy(code | XT_BIT_BREAK);
+  }  
+  else 
+  { // numlock is off, so turn it on, press and release key and turn it back off
+    sendToTandy(XT_KEY_NUM);
+    sendToTandy(code);
+    sendToTandy(code | XT_BIT_BREAK);
+    sendToTandy(XT_KEY_NUM | XT_BIT_BREAK);
+  } 
 }
 
-void numLockForcedOffPressAndRelease(unsigned char code)
+void numLockForcedOffPressAndRelease(byte code)
 {
-  if (numLockOn) // numlock is on, so turn it off, press and release key and turn it back on
-    sendToTandy(XT_KEY_NUM | XT_BIT_BREAK, code, code | XT_BIT_BREAK, XT_KEY_NUM);
-  else // numlock is already off, so just push and release the key
-    sendToTandy(code, code | XT_BIT_BREAK); 
+  if (numLockOn) 
+  { // numlock is on, so turn it off, press and release key and turn it back on
+    sendToTandy(XT_KEY_NUM | XT_BIT_BREAK);
+    sendToTandy(code);
+    sendToTandy(code | XT_BIT_BREAK);
+    sendToTandy(XT_KEY_NUM);
+  }
+  else 
+  { // numlock is already off, so just push and release the key 
+    sendToTandy(code);
+    sendToTandy(code | XT_BIT_BREAK); 
+  }
 }
 
 void handleNormalKeyPress(int code)
@@ -237,11 +253,13 @@ void handleNormalKeyPress(int code)
   switch (code)
   {
   case PS2_KEY_KP_TIMES: // send a shift 8 for * 
-    sendToTandy(XT_KEY_R_SHIFT, XT_KEY_8);
+    sendToTandy(XT_KEY_R_SHIFT);
+    sendToTandy(XT_KEY_8);
     break; 
 
   case PS2_KEY_KP_PLUS: // send a shift = for +
-    sendToTandy(XT_KEY_R_SHIFT, XT_KEY_EQUAL); 
+    sendToTandy(XT_KEY_R_SHIFT);
+    sendToTandy(XT_KEY_EQUAL); 
     break;
 
   case PS2_KEY_L_SHIFT: 
@@ -286,11 +304,13 @@ void handleNormalKeyRelease(int code)
   switch (code)
   {
   case PS2_KEY_KP_TIMES: 
-    sendToTandy(XT_KEY_8 | XT_BIT_BREAK, XT_KEY_R_SHIFT | XT_BIT_BREAK); 
+    sendToTandy(XT_KEY_8 | XT_BIT_BREAK);
+    sendToTandy(XT_KEY_R_SHIFT | XT_BIT_BREAK); 
     break;
   
   case PS2_KEY_KP_PLUS: 
-    sendToTandy(XT_KEY_EQUAL | XT_BIT_BREAK, XT_KEY_R_SHIFT | XT_BIT_BREAK); 
+    sendToTandy(XT_KEY_EQUAL | XT_BIT_BREAK);
+    sendToTandy(XT_KEY_R_SHIFT | XT_BIT_BREAK); 
     break;
 
   case PS2_KEY_L_SHIFT: 
@@ -525,21 +545,17 @@ void setupTable () // translate from PS2 keycode to Tandy 1000
   translationTable[PS2_KEY_HOME] = XT_KEY_HOME;
 }
 
-void sendToTandy(unsigned char value) // routine that writes to the data and clock lines to the Tandy
+void sendToTandy(byte value) // routine that writes to the data and clock lines to the Tandy
 {
-  while (digitalRead(XT_CLK) != LOW);
-
-  unsigned char bits[8];  
+  byte bits[8];  
 
   for (int i = 0; i < 8; i++)
   {
-    if (value & 1)
-      bits[i] = 1;
-    else 
-      bits[i] = 0; 
-    
-    value = value >> 1; 
+    bits[i] = value & 1;    
+    value >>= 1; 
   }
+
+  while (digitalRead(XT_CLK) != LOW);
 
   for (int i = 0; i < 8; i++)
   {
@@ -558,18 +574,4 @@ void sendToTandy(unsigned char value) // routine that writes to the data and clo
   delayMicroseconds(5);
   digitalWrite(XT_DATA, HIGH);
   delay(10);
-}
-
-void sendToTandy(unsigned char a, unsigned char b) 
-{
-  sendToTandy(a);
-  sendToTandy(b);
-}
-
-void sendToTandy(unsigned char a, unsigned char b, unsigned char c, unsigned char d) 
-{
-  sendToTandy(a);
-  sendToTandy(b);
-  sendToTandy(c);
-  sendToTandy(d);
 }
