@@ -60,7 +60,7 @@ byte translationTable[256];
 // PS2 raw keycodes
 #define PS2_CODE_BREAK   0xF0 // sent before the key code when a key is released
 #define PS2_CODE_EXTEND  0xE0 // sent before the key code in case the key is an "extended" key
-#define PS2_MAX_KEYCODE 0x7F // maximum value of normal key codes
+#define PS2_MAX_KEYCODE  0x7F // maximum value of normal key codes
 
 /* single byte key codes */
 #define PS2_KEY_NUM      0x77
@@ -427,7 +427,7 @@ void loop()
 
   int code = keyboard.read(); // read the keyboard buffer byte into variable code
    
-  if (code <= PS2_MAX_KEYCODE)  // normal PS2 key codes without any special or special commands
+  if (code <= PS2_MAX_KEYCODE)  // normal PS2 key codes without any special cases or special commands
   {
     handleNormalKeyPress(code);
   }
@@ -553,8 +553,8 @@ void sendToTandy(byte value) // routine that writes to the data and clock lines 
 
   for (int i = 0; i < 8; i++)
   {
-    bits[i] = value & 1;    
-    value >>= 1; 
+    bits[i] = value & 1; // grab least significant bit of value byte  
+    value >>= 1; // right-shift the value byte by one bit
   }
 
   while (digitalRead(XT_CLK) != LOW);
